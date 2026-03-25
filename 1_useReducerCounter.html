@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #f7f3ee;
+      --surface: #ffffff;
+      --surface2:#f0ebe4;
+      --border:  #e5ddd4;
+      --text:    #3d3530;
+      --muted:   #a89888;
+      --accent:  #d4849a;
+      --accent2: #8db89a;
+      --radius:  14px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px 80px;
+    }
+
+    #root {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .app-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.4rem;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .app-title span { color: var(--accent); }
+    .badge {
+      font-size: 0.68rem;
+      font-weight: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .counter-display {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .counter-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .counter-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 6rem;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .counter-value.positive { color: var(--accent2); }
+    .counter-value.negative { color: var(--accent); }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.85rem 1rem;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s, box-shadow .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .btn:hover  { opacity: .88; box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+    .btn:active { transform: scale(.96); }
+
+    .btn-inc   { border-color: #8db89a; color: #2e6b45; background: #eaf4ee; }
+    .btn-dec   { border-color: #d4849a; color: #7a2d42; background: #fdf0f3; }
+    .btn-inc10 { border-color: #c9b89a; color: #6b4a00; background: #fef3e2; }
+    .btn-reset { border-color: var(--border); color: var(--muted); }
+
+    .panel {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .panel-title {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .custom-row { display: flex; gap: 8px; }
+    .step-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      padding: 9px 14px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .15s;
+    }
+    .step-input:focus        { border-color: var(--accent); }
+    .step-input::placeholder { color: var(--muted); }
+    .btn-custom {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 99px;
+      padding: 9px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      white-space: nowrap;
+      transition: opacity .15s, transform .1s;
+      box-shadow: 0 2px 8px rgba(212,132,154,0.25);
+    }
+    .btn-custom:hover  { opacity: .88; }
+    .btn-custom:active { transform: scale(.96); }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .history-count { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+
+    .history-list {
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .history-empty {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 20px 0 8px;
+    }
+    .history-entry {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: var(--surface2);
+      font-size: 0.78rem;
+      animation: slideIn .18s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .entry-idx    { color: var(--muted); font-size: 0.65rem; min-width: 1.4rem; }
+    .entry-action { flex: 1; font-weight: 600; }
+    .entry-result { color: var(--muted); font-size: 0.72rem; }
+
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+  const { useReducer, useState, useRef, useEffect } = React;
+
+  function counterReducer(state, action) {
+    switch (action.type) {
+      case 'INCREMENT':
+        return {
+          count: state.count + 1,
+          history: [...state.history, { actionType: 'inc', label: '+1', result: state.count + 1 }],
+        };
+      case 'DECREMENT':
+        return {
+          count: state.count - 1,
+          history: [...state.history, { actionType: 'dec', label: '-1', result: state.count - 1 }],
+        };
+      case 'RESET':
+        return {
+          count: 0,
+          history: [...state.history, { actionType: 'reset', label: 'RESET', result: 0 }],
+        };
+      case 'INCREMENT_BY': {
+        const next = state.count + action.payload;
+        const sign = action.payload > 0 ? '+' : '';
+        return {
+          count: next,
+          history: [...state.history, {
+            actionType: action.payload === 10 ? 'inc10' : 'custom',
+            label: sign + action.payload,
+            result: next,
+          }],
+        };
+      }
+      default:
+        return state;
+    }
+  }
+
+  const initialState = { count: 0, history: [] };
+
+  function Counter() {
+    const [state, dispatch] = useReducer(counterReducer, initialState);
+
+    const [stepValue, setStepValue] = useState('');
+    const historyRef = useRef(null);
+
+    useEffect(() => {
+      if (historyRef.current) {
+        historyRef.current.scrollTop = historyRef.current.scrollHeight;
+      }
+    }, [state.history.length]);
+
+    function handleCustom() {
+      const n = parseInt(stepValue, 10);
+      if (!isNaN(n) && n !== 0) {
+        dispatch({ type: 'INCREMENT_BY', payload: n });
+        setStepValue('');
+      }
+    }
+
+    const valueClass = [
+      'counter-value',
+      state.count > 0 ? 'positive' : state.count < 0 ? 'negative' : '',
+    ].join(' ').trim();
+
+    return (
+            <>
+              <div className="app-header">
+                <h1 className="app-title">Брояч<span>.</span></h1>
+                <span className="badge">useReducer · Задача 1</span>
+              </div>
+
+              <div className="counter-display">
+                <span className="counter-label">count</span>
+                <div className={valueClass}>{state.count}</div>
+              </div>
+
+              <div className="btn-grid">
+                <button className="btn btn-inc"   onClick={() => dispatch({ type: 'INCREMENT' })}>▲ INCREMENT</button>
+                <button className="btn btn-dec"   onClick={() => dispatch({ type: 'DECREMENT' })}>▼ DECREMENT</button>
+                <button className="btn btn-inc10" onClick={() => dispatch({ type: 'INCREMENT_BY', payload: 10 })}>▲▲ +10</button>
+                <button className="btn btn-reset" onClick={() => dispatch({ type: 'RESET' })}>⟳ RESET</button>
+              </div>
+
+              <div className="panel">
+                <div className="panel-title">INCREMENT_BY — произволна стойност (payload)</div>
+                <div className="custom-row">
+                  <label>
+                    <input
+                            className="step-input"
+                            type="number"
+                            placeholder="напр. -5, 42…"
+                            value={stepValue}
+                            onChange={e => setStepValue(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleCustom()}
+                    />
+                  </label>
+                  <button className="btn-custom" onClick={handleCustom}>Изпълни</button>
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="history-header">
+                  <span className="panel-title" style={{ marginBottom: 0 }}>История на действията</span>
+                  <span className="history-count">{state.history.length} записа</span>
+                </div>
+                <div className="history-list" ref={historyRef}>
+                  {state.history.length === 0
+                          ? <div className="history-empty">Все още няма действия…</div>
+                          : state.history.map((entry, i) => (
+                                  <div key={i} className="history-entry">
+                                    <span className="entry-idx">#{i + 1}</span>
+                                    <span className={`entry-action entry-${entry.actionType}`}>{entry.label}</span>
+                                    <span className="entry-result">→ {entry.result}</span>
+                                  </div>
+                          ))
+                  }
+                </div>
+              </div>
+            </>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<Counter />);
+</script>
+</body>
+</html>

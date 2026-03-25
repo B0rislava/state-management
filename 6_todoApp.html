@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="bg">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap"
+        rel="stylesheet" />
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        window.zustand = (() => {
+            function create(createState) {
+                let state;
+                const listeners = new Set();
+                const setState = (partial) => {
+                    const next = typeof partial === 'function' ? partial(state) : partial;
+                    if (next !== state) {
+                        state = Object.assign({}, state, next);
+                        listeners.forEach(l => l(state));
+                    }
+                };
+                const getState = () => state;
+                const subscribe = (listener) => {
+                    listeners.add(listener);
+                    return () => listeners.delete(listener);
+                };
+                state = createState(setState, getState);
+                function useStore(selector) {
+                    selector = selector || (s => s);
+                    const [slice, setSlice] = React.useState(() => selector(state));
+                    React.useEffect(() => {
+                        const current = selector(state);
+                        if (!Object.is(current, slice)) setSlice(current);
+                        return subscribe((s) => {
+                            const next = selector(s);
+                            setSlice(prev => Object.is(prev, next) ? prev : next);
+                        });
+                    }, []);
+                    return slice;
+                }
+                useStore.getState = getState;
+                useStore.setState = setState;
+                useStore.subscribe = subscribe;
+                return useStore;
+            }
+            return { create };
+        })();
+    </script>
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #f7f3ee;
+            --surface: #ffffff;
+            --surface2: #f0ebe4;
+            --border: #e5ddd4;
+            --accent: #d4849a;
+            --accent2: #c9b89a;
+            --done: #8db89a;
+            --danger: #d4849a;
+            --text: #3d3530;
+            --muted: #a89888;
+            --radius: 14px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 16px 80px;
+        }
+
+        #root {
+            width: 100%;
+            max-width: 620px;
+        }
+
+        .app-header {
+            margin-bottom: 28px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .app-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.4rem;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
+        .app-title span {
+            color: var(--accent);
+        }
+
+        .badge {
+            font-size: 0.68rem;
+            font-weight: 500;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .stats-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-num {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.8rem;
+            line-height: 1;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        .stat-num.done-color {
+            color: var(--done);
+        }
+
+        .stat-num.active-color {
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.62rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+
+        .stat-divider {
+            width: 1px;
+            height: 36px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        .progress-wrap {
+            flex: 2;
+        }
+
+        .progress-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 7px;
+            font-weight: 500;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--done));
+            border-radius: 99px;
+            transition: width 0.5s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .add-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .add-input {
+            flex: 1;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.93rem;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .add-input::placeholder {
+            color: var(--muted);
+        }
+
+        .add-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 132, 154, 0.12);
+        }
+
+        .add-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            padding: 0 22px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: opacity .15s, transform .12s, box-shadow .15s;
+            box-shadow: 0 2px 8px rgba(212, 132, 154, 0.3);
+            min-width: 52px;
+        }
+
+        .add-btn:hover {
+            opacity: .9;
+            box-shadow: 0 4px 14px rgba(212, 132, 154, 0.4);
+        }
+
+        .add-btn:active {
+            transform: scale(.93);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrap {
+            flex: 1;
+            min-width: 160px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 9px 34px 9px 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .search-input::placeholder {
+            color: var(--muted);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 132, 154, 0.12);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 99px;
+            padding: 8px 14px;
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .18s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(212, 132, 154, 0.3);
+        }
+
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .todo-item {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            transition: border-color .2s, opacity .25s, box-shadow .2s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .todo-item:hover {
+            border-color: var(--accent2);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--done);
+            border-radius: 50%;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 0.93rem;
+            transition: color .2s;
+        }
+
+        .todo-text.done {
+            text-decoration: line-through;
+            color: var(--muted);
+        }
+
+        .del-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            padding: 5px 8px;
+            color: var(--muted);
+            transition: all .15s;
+        }
+
+        .del-btn:hover {
+            background: #f9e0e6;
+            border-color: #e8b0be;
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .hint {
+            margin-top: 30px;
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.9;
+            font-family: monospace;
+        }
+
+        .hint strong {
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { create } = window.zustand;
+
+        const useTodoStore = create((set, get) => ({
+            todos: [
+                { id: 1, text: "Научи useReducer", done: true },
+                { id: 2, text: "Научи Context API", done: true },
+                { id: 3, text: "Научи Zustand", done: false },
+                { id: 4, text: "Направи проект", done: false },
+            ],
+            filter: 'all',
+            searchQuery: '',
+
+            addTodo: (text) => set((s) => ({
+                todos: [...s.todos, { id: Date.now(), text, done: false }],
+            })),
+
+            toggleTodo: (id) => set((s) => ({
+                todos: s.todos.map(t =>
+                    t.id === id ? { ...t, done: !t.done } : t
+                ),
+            })),
+
+            deleteTodo: (id) => set((s) => ({
+                todos: s.todos.filter(t => t.id !== id),
+            })),
+
+            setFilter: (filter) => set({ filter }),
+            setSearch: (searchQuery) => set({ searchQuery }),
+
+            getFilteredTodos: () => {
+                const { todos, filter, searchQuery } = get();
+                let result = todos;
+
+                if (filter === 'active') result = result.filter(t => !t.done);
+                if (filter === 'completed') result = result.filter(t => t.done);
+
+                if (searchQuery) {
+                    result = result.filter(t =>
+                        t.text.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                }
+
+                return result;
+            },
+
+            getStats: () => {
+                const { todos } = get();
+                return {
+                    total: todos.length,
+                    done: todos.filter(t => t.done).length,
+                    remaining: todos.filter(t => !t.done).length,
+                };
+            },
+        }));
+
+
+        function SearchInput() {
+            const searchQuery = useTodoStore(s => s.searchQuery);
+            const setSearch = useTodoStore(s => s.setSearch);
+
+            return (
+                <div className="search-wrap">
+                    <input
+                        className="search-input"
+                        placeholder="Търси задача..."
+                        value={searchQuery}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+            );
+        }
+
+        function FilterButtons() {
+            const filter = useTodoStore(s => s.filter);
+            const setFilter = useTodoStore(s => s.setFilter);
+
+            return (
+                <div className="filter-group">
+                    <button
+                        className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilter('all')}
+                    >Всички</button>
+                    <button
+                        className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
+                        onClick={() => setFilter('active')}
+                    >Активни</button>
+                    <button
+                        className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
+                        onClick={() => setFilter('completed')}
+                    >Завършени</button>
+                </div>
+            );
+        }
+
+        function AddTodoForm() {
+            const addTodo = useTodoStore(s => s.addTodo);
+            const [text, setText] = React.useState('');
+
+            function handleAdd() {
+                if (text.trim()) {
+                    addTodo(text.trim());
+                    setText('');
+                }
+            }
+
+            return (
+                <div className="add-form">
+                    <input
+                        className="add-input"
+                        placeholder="Добави нова задача..."
+                        value={text}
+                        onChange={e => setText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                    />
+                    <button className="add-btn" onClick={handleAdd}>+</button>
+                </div>
+            );
+        }
+
+        function TodoItem({ todo }) {
+            const toggleTodo = useTodoStore(s => s.toggleTodo);
+            const deleteTodo = useTodoStore(s => s.deleteTodo);
+
+            return (
+                <li className="todo-item">
+                    <input
+                        type="checkbox"
+                        className="todo-checkbox"
+                        checked={todo.done}
+                        onChange={() => toggleTodo(todo.id)}
+                    />
+                    <span className={`todo-text ${todo.done ? 'done' : ''}`}>
+                        {todo.text}
+                    </span>
+                    <button className="del-btn" onClick={() => deleteTodo(todo.id)}>✕</button>
+                </li>
+            );
+        }
+
+        function TodoList() {
+            const filteredTodos = useTodoStore(s => s.getFilteredTodos());
+
+            if (filteredTodos.length === 0) {
+                return <div className="empty-state">Няма намерени задачи</div>;
+            }
+
+            return (
+                <ul className="todo-list">
+                    {filteredTodos.map(todo => (
+                        <TodoItem key={todo.id} todo={todo} />
+                    ))}
+                </ul>
+            );
+        }
+
+        function Stats() {
+            const { total, done } = useTodoStore(s => s.getStats());
+            const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+            return (
+                <div className="stats-bar">
+                    <div className="stat-item">
+                        <div className="stat-num">{total}</div>
+                        <div className="stat-label">Общо</div>
+                    </div>
+                    <div className="stat-divider" />
+                    <div className="stat-item">
+                        <div className="stat-num done-color">{done}</div>
+                        <div className="stat-label">Готови</div>
+                    </div>
+                    <div className="stat-divider" />
+                    <div className="progress-wrap">
+                        <div className="progress-label">{done} от {total} завършени ({pct}%)</div>
+                        <div className="progress-track">
+                            <div className="progress-fill" style={{ width: pct + '%' }} />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            return (
+                <>
+                    <div className="app-header">
+                        <h1 className="app-title">Задачи<span>.</span></h1>
+                        <span className="badge">Zustand · Задача 6</span>
+                    </div>
+
+                    <Stats />
+                    <AddTodoForm />
+
+                    <div className="controls">
+                        <SearchInput />
+                        <FilterButtons />
+                    </div>
+
+                    <TodoList />
+
+                    <p className="hint">
+                        <strong>useTodoStore(s =&gt; s.field)</strong> - селекторът казва на Zustand<br />
+                        кои данни са нужни. Компонентът се ре-рендерира <strong>САМО</strong> при промяна<br />
+                        на точно тези данни. Няма нужда от {'<Provider>'} - store-ът е глобален.
+                    </p>
+                </>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>

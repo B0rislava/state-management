@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Commerce App</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        window.zustand = (() => {
+            function create(createState) {
+                let state;
+                const listeners = new Set();
+                const setState = (partial) => {
+                    const next = typeof partial === 'function' ? partial(state) : partial;
+                    if (next !== state) {
+                        state = Object.assign({}, state, next);
+                        listeners.forEach(l => l(state));
+                    }
+                };
+                const getState = () => state;
+                const subscribe = (listener) => {
+                    listeners.add(listener);
+                    return () => listeners.delete(listener);
+                };
+                state = createState(setState, getState);
+                function useStore(selector) {
+                    selector = selector || (s => s);
+                    const [slice, setSlice] = React.useState(() => selector(state));
+                    React.useLayoutEffect(() => {
+                        return subscribe((s) => {
+                            const next = selector(s);
+                            setSlice(prev => Object.is(prev, next) ? prev : next);
+                        });
+                    }, []);
+                    return slice;
+                }
+                useStore.getState = getState;
+                useStore.setState = setState;
+                useStore.subscribe = subscribe;
+                return useStore;
+            }
+            return { create };
+        })();
+    </script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:         #f7f3ee;
+            --surface:    #ffffff;
+            --surface2:   #f0ebe4;
+            --border:     #e5ddd4;
+            --text:       #3d3530;
+            --text-muted: #a89888;
+            --accent:     #d4849a;
+            --accent-dim: #faeef1;
+            --green:      #8db89a;
+            --green-dim:  #e4f2e8;
+            --radius:     12px;
+            --shadow:     0 2px 12px rgba(212,132,154,0.1);
+            --nav-bg:     #ffffff;
+            --nav-border: #e5ddd4;
+        }
+
+        [data-theme="dark"] {
+            --bg:         #1e1a18;
+            --surface:    #2a2420;
+            --surface2:   #322c28;
+            --border:     #3d3530;
+            --text:       #f0ebe4;
+            --text-muted: #7a6a60;
+            --accent:     #d4849a;
+            --accent-dim: #3d2530;
+            --green:      #8db89a;
+            --green-dim:  #1e3028;
+            --nav-bg:     #2a2420;
+            --nav-border: #3d3530;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #app { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+        .navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--nav-bg); border-bottom: 2px solid var(--nav-border);
+            padding: 0.85rem 1.5rem;
+            display: flex; align-items: center; gap: 1rem;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .nav-logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.3rem; font-weight: 400; color: var(--text);
+            flex: 1; text-decoration: none;
+        }
+        .nav-logo span { color: var(--accent); }
+
+        .nav-user {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.78rem; color: var(--text-muted);
+        }
+        .nav-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--accent-dim); border: 2px solid var(--accent);
+            color: var(--accent); font-size: 0.7rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .cart-badge-wrap { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-muted); }
+        .cart-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 24px; height: 24px; padding: 0 5px;
+            border-radius: 99px; background: var(--accent);
+            color: #fff; font-size: 0.72rem; font-weight: 700;
+        }
+        .cart-badge.empty { background: var(--border); color: var(--text-muted); }
+
+        .btn-theme {
+            background: var(--surface2); border: 2px solid var(--border);
+            color: var(--text-muted); border-radius: 8px;
+            width: 32px; height: 32px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; transition: all 0.15s; flex-shrink: 0;
+        }
+        .btn-theme:hover { border-color: var(--accent); color: var(--accent); }
+
+        .btn-auth {
+            background: var(--accent-dim); border: 2px solid var(--accent);
+            color: var(--accent); border-radius: 20px;
+            padding: 0.35rem 0.85rem; font-size: 0.72rem; font-weight: 700;
+            cursor: pointer; transition: all 0.15s; font-family: inherit;
+        }
+        .btn-auth:hover { background: var(--accent); color: #fff; }
+
+        .badge {
+            font-size: 0.68rem;
+            font-weight: 500;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.25rem;
+            align-items: start;
+        }
+        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: var(--radius); overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .panel-header {
+            padding: 0.9rem 1.25rem; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .panel-title {
+            font-size: 0.6rem; font-weight: 700;
+            letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted);
+        }
+        .panel-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .search-row { display: flex; gap: 0.6rem; align-items: center; flex: 1; }
+        .search-input {
+            flex: 1; background: var(--surface2); border: 2px solid var(--border);
+            border-radius: 20px; padding: 0.4rem 0.9rem;
+            font-size: 0.8rem; color: var(--text); outline: none;
+        }
+        .filter-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; padding: 0.75rem 1.25rem 0; }
+        .filter-tab {
+            background: var(--surface2); border: 2px solid var(--border);
+            color: var(--text-muted); border-radius: 20px;
+            padding: 0.35rem 0.85rem; font-size: 0.72rem; font-weight: 600;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .filter-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem; padding: 1rem 1.25rem 1.25rem;
+        }
+        .product-card {
+            background: var(--surface2); border: 2px solid var(--border);
+            border-radius: 10px; overflow: hidden;
+            display: flex; flex-direction: column; transition: transform 0.15s;
+        }
+        .product-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+        .product-thumb {
+            height: 90px; background: var(--accent-dim);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem;
+        }
+        .product-body { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
+        .product-name { font-size: 0.82rem; font-weight: 600; line-height: 1.3; }
+        .product-cat { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        .product-price { font-size: 0.85rem; color: var(--green); font-weight: 700; margin-top: auto; }
+        .product-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+
+        .btn-add {
+            flex: 1; background: var(--accent-dim); border: 2px solid var(--accent);
+            color: var(--accent); border-radius: 8px; padding: 0.4rem 0.5rem;
+            font-size: 0.7rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-add.in-cart { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+        .btn-fav {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: 8px; width: 32px; height: 32px;
+            cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-fav.active { background: var(--accent-dim); border-color: var(--accent); }
+
+        .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+        .cart-item {
+            display: flex; align-items: center; gap: 0.75rem;
+            background: var(--surface2); border: 2px solid var(--border);
+            border-radius: 10px; padding: 0.75rem;
+        }
+        .item-emoji {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: var(--accent-dim); font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .item-info { flex: 1; min-width: 0; }
+        .qty-control {
+            display: flex; align-items: center;
+            border: 2px solid var(--border); border-radius: 20px; overflow: hidden;
+        }
+        .qty-btn {
+            background: var(--surface); border: none; width: 26px; height: 26px; cursor: pointer;
+        }
+        .qty-display {
+            width: 28px; text-align: center; font-size: 0.78rem; font-weight: 700;
+            border: none; background: transparent;
+        }
+        .btn-remove {
+            background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px;
+        }
+
+        .summary-body { padding: 0.9rem 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); }
+        .summary-row.total {
+            font-size: 0.95rem; font-weight: 700; color: var(--text);
+            padding-top: 0.5rem; border-top: 1px solid var(--border);
+        }
+        .btn-checkout {
+            margin: 0 1rem 0.6rem; width: calc(100% - 2rem);
+            background: var(--green); border: none; color: #fff;
+            border-radius: 20px; padding: 0.65rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-clear-cart {
+            margin: 0 1rem 1rem; width: calc(100% - 2rem);
+            background: transparent; border: 2px solid var(--border);
+            color: var(--text-muted); border-radius: 20px; padding: 0.5rem;
+        }
+        .fav-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            font-size: 0.78rem; padding: 0.5rem 0.6rem;
+            background: var(--surface2); border-radius: 8px; border: 1px solid var(--border);
+        }
+
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: var(--radius); width: 320px; overflow: hidden;
+        }
+        .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .login-form { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem; }
+        .login-input {
+            background: var(--surface2); border: 2px solid var(--border);
+            border-radius: 8px; padding: 0.55rem 0.85rem; font-size: 0.8rem;
+        }
+        .btn-login {
+            background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 0.6rem; font-weight: 700;
+        }
+
+        .state-label {
+            font-size: 0.55rem; font-weight: 700; text-transform: uppercase;
+            padding: 2px 6px; border-radius: 4px; margin-left: 0.4rem;
+        }
+        .label-reducer { background: #fef3c7; color: #92400e; }
+        .label-zustand { background: #d1fae5; color: #065f46; }
+
+    </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+    const { createContext, useContext, useReducer, useState, useEffect } = React;
+    const { create } = window.zustand;
+
+    const ThemeContext = createContext();
+
+    function ThemeProvider({ children }) {
+        const [theme, setTheme] = useState('light');
+        const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+        useEffect(() => {
+            document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+        }, [theme]);
+
+        return (
+            <ThemeContext.Provider value={{ theme, toggleTheme }}>
+                {children}
+            </ThemeContext.Provider>
+        );
+    }
+
+    const useTheme = () => useContext(ThemeContext);
+
+    const AuthContext = createContext();
+
+    function AuthProvider({ children }) {
+        const [user, setUser] = useState(null);
+        const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+        const login = (email) => {
+            setUser({ email, name: email.split("@")[0] });
+            setIsLoginOpen(false);
+        };
+        const logout = () => setUser(null);
+
+        return (
+            <AuthContext.Provider value={{ user, login, logout, isLoginOpen, setIsLoginOpen }}>
+                {children}
+            </AuthContext.Provider>
+        );
+    }
+
+    const useAuth = () => useContext(AuthContext);
+
+    function cartReducer(state, action) {
+        switch (action.type) {
+            case 'ADD_TO_CART': {
+                const existing = state.items.find(i => i.product.id === action.product.id);
+                if (existing) {
+                    return { items: state.items.map(i =>
+                        i.product.id === action.product.id ? { ...i, quantity: i.quantity + 1 } : i
+                    )};
+                }
+                return { items: [...state.items, { product: action.product, quantity: 1 }] };
+            }
+            case 'REMOVE_FROM_CART':
+                return { items: state.items.filter(i => i.product.id !== action.id) };
+            case 'UPDATE_QUANTITY':
+                return { items: state.items
+                    .map(i => i.product.id === action.id ? { ...i, quantity: Math.max(0, action.quantity) } : i)
+                    .filter(i => i.quantity > 0)
+                };
+            case 'CLEAR_CART':
+                return { items: [] };
+            default: return state;
+        }
+    }
+
+
+    const useProductStore = create((set, get) => ({
+        products: [
+            { id: 1, name: "React книга",       price: 45, category: "books",       emoji: '📘' },
+            { id: 2, name: "JS тениска",         price: 30, category: "clothing",    emoji: '👕' },
+            { id: 3, name: "CSS стикери",        price: 5,  category: "accessories", emoji: '🎨' },
+            { id: 4, name: "Node.js чаша",       price: 15, category: "accessories", emoji: '☕' },
+            { id: 5, name: "TypeScript курс",    price: 99, category: "courses",     emoji: '📚' },
+        ],
+        favorites: [],
+        searchQuery: '',
+        category: 'all',
+
+        toggleFavorite: (id) => set((s) => ({
+            favorites: s.favorites.includes(id)
+                ? s.favorites.filter(f => f !== id)
+                : [...s.favorites, id],
+        })),
+
+        setSearch: (q) => set({ searchQuery: q }),
+        setCategory: (c) => set({ category: c }),
+
+        getFilteredProducts: () => {
+            const { products, searchQuery, category } = get();
+            let result = products;
+            if (category !== 'all') {
+                result = result.filter(p => p.category === category);
+            }
+            if (searchQuery) {
+                result = result.filter(p =>
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+            }
+            return result;
+        },
+    }));
+
+
+    function NavBar({ cartCount }) {
+        const { theme, toggleTheme } = useTheme();
+        const { user, logout, setIsLoginOpen } = useAuth();
+        
+        return (
+            <nav className="navbar">
+                <a href="#" className="nav-logo">shop<span>.</span></a>
+                
+                <span className="badge" style={{ marginRight: '1rem' }}>
+                    Context API · useReducer · Zustand · Задача 7
+                </span>
+
+                
+                {user && (
+                    <div className="nav-user">
+                        <div className="nav-avatar">{user.name[0].toUpperCase()}</div>
+                        <span>{user.name}</span>
+                    </div>
+                )}
+                
+                <div className="cart-badge-wrap">
+                    🛒 <span className={`cart-badge ${cartCount === 0 ? 'empty' : ''}`}>{cartCount}</span>
+                </div>
+                
+                <button className="btn-theme" onClick={toggleTheme}>
+                    {theme === 'light' ? '🌙' : '☀️'}
+                </button>
+                
+                <button className="btn-auth" onClick={user ? logout : () => setIsLoginOpen(true)}>
+                    {user ? 'Изход' : 'Вход'}
+                </button>
+            </nav>
+        );
+    }
+
+    function LoginForm() {
+        const { isLoginOpen, setIsLoginOpen, login } = useAuth();
+        const [email, setEmail] = useState('');
+
+        if (!isLoginOpen) return null;
+
+        const handleSubmit = (e) => {
+            e.preventDefault();
+            if (email.includes('@')) login(email);
+        };
+
+        return (
+            <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
+                <div className="modal-box" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <span style={{ fontWeight: 700 }}>Вход</span>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setIsLoginOpen(false)}>✕</button>
+                    </div>
+                    <form className="login-form" onSubmit={handleSubmit}>
+                        <input 
+                            className="login-input" 
+                            type="email" 
+                            placeholder="имейл@example.com" 
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            required
+                        />
+                        <button type="submit" className="btn-login">Влез →</button>
+                        <div className="login-hint">Въведи случаен имейл.</div>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    function SearchBar() {
+        const searchQuery = useProductStore(s => s.searchQuery);
+        const setSearch = useProductStore(s => s.setSearch);
+        
+        return (
+            <div className="search-row" style={{ padding: '0 1.25rem', marginTop: '1.25rem' }}>
+
+                <input 
+                    className="search-input" 
+                    placeholder="🔍 Търси продукт..." 
+                    value={searchQuery}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
+        );
+    }
+
+    function CategoryFilter() {
+        const currentCat = useProductStore(s => s.category);
+        const setCategory = useProductStore(s => s.setCategory);
+        
+        const cats = [
+            { id: 'all', label: 'Всички' },
+            { id: 'books', label: 'Книги' },
+            { id: 'clothing', label: 'Дрехи' },
+            { id: 'accessories', label: 'Аксесоари' },
+            { id: 'courses', label: 'Курсове' }
+        ];
+
+        return (
+            <div className="filter-tabs">
+                {cats.map(c => (
+                    <button 
+                        key={c.id} 
+                        className={`filter-tab ${currentCat === c.id ? 'active' : ''}`}
+                        onClick={() => setCategory(c.id)}
+                    >
+                        {c.label}
+                    </button>
+                ))}
+            </div>
+        );
+    }
+
+    function ProductGrid({ onAddToCart, cartItems }) {
+        const products = useProductStore(s => s.getFilteredProducts());
+        const toggleFavorite = useProductStore(s => s.toggleFavorite);
+        const favorites = useProductStore(s => s.favorites);
+
+        return (
+            <div className="product-grid">
+                {products.length === 0 ? (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Няма намерени продукти.
+                    </div>
+                ) : (
+                    products.map(p => {
+                        const inCart = cartItems.some(item => item.product.id === p.id);
+                        const isFav = favorites.includes(p.id);
+                        
+                        return (
+                            <div key={p.id} className="product-card">
+                                <div className="product-thumb">{p.emoji}</div>
+                                <div className="product-body">
+                                    <div className="product-cat">{p.category}</div>
+                                    <div className="product-name">{p.name}</div>
+                                    <div className="product-price">{p.price.toFixed(2)} €</div>
+                                    <div className="product-actions">
+                                        <button 
+                                            className={`btn-add ${inCart ? 'in-cart' : ''}`}
+                                            onClick={() => onAddToCart(p)}
+                                        >
+                                            {inCart ? '✓ В количката' : '+ Добави'}
+                                        </button>
+                                        <button 
+                                            className={`btn-fav ${isFav ? 'active' : ''}`}
+                                            onClick={() => toggleFavorite(p.id)}
+                                        >
+                                            {isFav ? '❤️' : '🤍'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        );
+    }
+
+    function Cart({ items, dispatch }) {
+        const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+
+        return (
+            <div className="panel">
+                <div className="panel-header">
+                    <span className="panel-title">
+                        Количка
+                        <span className="state-label label-reducer">useReducer</span>
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{items.length} арт.</span>
+                </div>
+                <div className="panel-body" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {items.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>🌸 Количката е празна</div>
+                    ) : (
+                        items.map(item => (
+                            <div key={item.product.id} className="cart-item">
+                                <div className="item-emoji">{item.product.emoji}</div>
+                                <div className="item-info">
+                                    <div className="item-name">{item.product.name}</div>
+                                    <div className="item-price">{item.product.price} €</div>
+                                </div>
+                                <div className="qty-control">
+                                    <button className="qty-btn" onClick={() => dispatch({ type: 'UPDATE_QUANTITY', id: item.product.id, quantity: item.quantity - 1 })}>−</button>
+                                    <span className="qty-display">{item.quantity}</span>
+                                    <button className="qty-btn" onClick={() => dispatch({ type: 'UPDATE_QUANTITY', id: item.product.id, quantity: item.quantity + 1 })}>+</button>
+                                </div>
+                                <button className="btn-remove" onClick={() => dispatch({ type: 'REMOVE_FROM_CART', id: item.product.id })}>✕</button>
+                            </div>
+                        ))
+                    )}
+                </div>
+                <div className="summary-body">
+                    <div className="summary-row total">
+                        <span>Общо</span>
+                        <span style={{ color: 'var(--green)' }}>{total.toFixed(2)} €</span>
+                    </div>
+                </div>
+                <button className="btn-checkout" disabled={items.length === 0} onClick={() => { alert('Поръчката е завършена! 🎉'); dispatch({ type: 'CLEAR_CART' }); }}>Поръчай →</button>
+                <button className="btn-clear-cart" disabled={items.length === 0} onClick={() => dispatch({ type: 'CLEAR_CART' })}>⊘ Изчисти</button>
+            </div>
+        );
+    }
+
+    function FavoritesPanel() {
+        const favorites = useProductStore(s => s.favorites);
+        const products = useProductStore(s => s.products);
+        const favProducts = products.filter(p => favorites.includes(p.id));
+
+        return (
+            <div className="panel">
+                <div className="panel-header">
+                    <span className="panel-title">
+                        Любими
+                        <span className="state-label label-zustand">Zustand</span>
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{favorites.length}</span>
+                </div>
+                <div className="panel-body">
+                    {favProducts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>🤍 Няма любими</div>
+                    ) : (
+                        favProducts.map(p => (
+                            <div key={p.id} className="fav-item">
+                                <span>{p.emoji}</span>
+                                <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
+                                <span style={{ color: 'var(--green)', fontWeight: 700 }}>{p.price} €</span>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+
+    function Main() {
+        const [cart, cartDispatch] = useReducer(cartReducer, { items: [] });
+        const totalCount = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+
+        return (
+            <div id="app">
+                <NavBar cartCount={totalCount} />
+                
+                <div className="main-layout">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="panel">
+                            <div className="panel-header" style={{ paddingBottom: '0.8rem' }}>
+
+                                <span className="panel-title">
+                                    Catalog
+                                    <span className="state-label label-zustand">Zustand</span>
+                                </span>
+                            </div>
+                            <SearchBar />
+                            <CategoryFilter />
+                            <ProductGrid 
+                                cartItems={cart.items} 
+                                onAddToCart={(product) => cartDispatch({ type: 'ADD_TO_CART', product })} 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="sidebar">
+                        <Cart items={cart.items} dispatch={cartDispatch} />
+                        <FavoritesPanel />
+                    </div>
+                </div>
+
+                <LoginForm />
+            </div>
+        );
+    }
+
+    function App() {
+        return (
+            <ThemeProvider>
+                <AuthProvider>
+                    <Main />
+                </AuthProvider>
+            </ThemeProvider>
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+
+</script>
+</body>
+</html>

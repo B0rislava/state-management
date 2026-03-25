@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #f7f3ee;
+            --surface:  #ffffff;
+            --surface2: #f0ebe4;
+            --border:   #e5ddd4;
+            --accent:   #d4849a;
+            --text:     #3d3530;
+            --muted:    #a89888;
+            --radius:   14px;
+
+            --success-bg:     #d6f0e0;
+            --success-border: #5aab7a;
+            --success-text:   #1e5c38;
+            --success-icon:   #27ae60;
+
+            --error-bg:     #fad8d8;
+            --error-border: #d95f5f;
+            --error-text:   #7a1f1f;
+            --error-icon:   #e74c3c;
+
+            --warning-bg:     #fef3cd;
+            --warning-border: #d4a820;
+            --warning-text:   #6b4a00;
+            --warning-icon:   #f0b429;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 16px 80px;
+        }
+
+        #root { width: 100%; max-width: 620px; }
+
+        .app-header {
+            margin-bottom: 28px;
+            display: flex; align-items: flex-end; justify-content: space-between;
+        }
+        .app-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.4rem; font-weight: 400;
+            letter-spacing: -0.5px; line-height: 1;
+        }
+        .app-title span { color: var(--accent); }
+        .badge {
+            font-size: 0.68rem; font-weight: 500;
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--muted); padding: 4px 12px; border-radius: 20px;
+        }
+
+        .count-bar {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 18px 22px; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .stat-item { text-align: center; flex: 1; }
+        .stat-num {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.8rem; line-height: 1; color: var(--text);
+        }
+        .stat-label {
+            font-size: 0.62rem; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 3px; font-weight: 500;
+        }
+        .stat-divider { width: 1px; height: 36px; background: var(--border); }
+
+        .panel {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: var(--radius); padding: 18px 22px; margin-bottom: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .panel-title {
+            font-size: 0.62rem; font-weight: 600;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 14px;
+        }
+
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            flex: 1; min-width: 100px; border: none; border-radius: 99px;
+            padding: 10px 1rem; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 0.4rem;
+            transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+            font-family: 'DM Sans', sans-serif;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .btn:hover  { opacity: 0.88; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .btn:active { transform: scale(0.96); }
+        .btn-success { background: var(--success-icon); color: #fff; }
+        .btn-error   { background: var(--error-icon);   color: #fff; }
+        .btn-warning { background: var(--warning-icon);  color: var(--text); }
+
+        .custom-row { display: flex; gap: 8px; margin-top: 10px; }
+        .custom-input {
+            flex: 1; background: var(--surface2); border: 1.5px solid var(--border);
+            color: var(--text); font-size: 0.82rem; padding: 9px 14px;
+            border-radius: var(--radius); outline: none;
+            transition: border-color 0.15s; font-family: 'DM Sans', sans-serif;
+        }
+        .custom-input:focus { border-color: var(--accent); }
+        .custom-input::placeholder { color: var(--muted); }
+        .type-select {
+            background: var(--surface2); border: 1.5px solid var(--border);
+            color: var(--text); font-size: 0.82rem; padding: 9px 10px;
+            border-radius: var(--radius); outline: none; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-add-custom {
+            background: var(--accent); color: #fff; border: none;
+            border-radius: var(--radius); padding: 9px 18px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; white-space: nowrap;
+            transition: opacity .15s, transform .1s;
+            box-shadow: 0 2px 8px rgba(212,132,154,0.25);
+        }
+        .btn-add-custom:hover  { opacity: .88; }
+        .btn-add-custom:active { transform: scale(.96); }
+
+        .notif-list { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+        .notif-empty { text-align: center; font-size: 0.82rem; color: var(--muted); padding: 28px 0 16px; }
+        .notif-empty-icon { font-size: 1.8rem; margin-bottom: 8px; }
+
+        .notif-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 13px 15px; border-radius: var(--radius);
+            border: 1.5px solid transparent; border-left-width: 4px;
+            animation: slideIn 0.2s ease; position: relative; overflow: hidden;
+            transition: box-shadow .2s;
+        }
+        .notif-item:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .notif-success {
+            background: var(--success-bg); border-color: var(--success-border); color: var(--success-text);
+        }
+        .notif-error {
+            background: var(--error-bg); border-color: var(--error-border); color: var(--error-text);
+        }
+        .notif-warning {
+            background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text);
+        }
+
+        .notif-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+        .notif-body { flex: 1; }
+        .notif-message { font-size: 0.88rem; font-weight: 600; }
+        .notif-meta    { font-size: 0.7rem; opacity: 0.65; margin-top: 3px; }
+
+        .notif-progress {
+            position: absolute; bottom: 0; left: 0;
+            height: 2px; border-radius: 0;
+            animation: shrink 5s linear forwards;
+        }
+        .notif-success .notif-progress { background: var(--success-icon); }
+        .notif-error   .notif-progress { background: var(--error-icon); }
+        .notif-warning .notif-progress { background: var(--warning-icon); }
+        @keyframes shrink {
+            from { width: 100%; }
+            to   { width: 0%; }
+        }
+
+        .notif-close {
+            background: none; border: none; cursor: pointer;
+            font-size: 0.9rem; line-height: 1; opacity: 0.4;
+            color: inherit; padding: 0; flex-shrink: 0;
+            transition: opacity 0.15s; font-family: 'DM Sans', sans-serif;
+        }
+        .notif-close:hover { opacity: 1; }
+
+        .btn-clear {
+            width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+            color: var(--muted); border-radius: var(--radius); padding: 11px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            font-family: 'DM Sans', sans-serif; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .btn-clear:hover:not(:disabled) {
+            background: #fdf0f3; border-color: var(--error-border); color: var(--error-text);
+        }
+        .btn-clear:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .hint {
+            margin-top: 28px; font-size: 0.68rem; color: var(--muted);
+            text-align: center; line-height: 1.9; font-family: monospace;
+        }
+        .hint strong { color: var(--accent); }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const { createContext, useContext, useReducer, useState, useRef } = React;
+
+    function notificationReducer(state, action) {
+        switch (action.type) {
+            case 'ADD':
+                return [...state, {
+                    id:      action.id,
+                    type:    action.notifType,
+                    message: action.message,
+                    time:    new Date().toLocaleTimeString('bg-BG'),
+                }];
+            case 'REMOVE':
+                return state.filter(n => n.id !== action.id);
+            case 'CLEAR_ALL':
+                return [];
+            default:
+                return state;
+        }
+    }
+
+    const NotificationContext = createContext(null);
+
+    function NotificationProvider({ children }) {
+        const [notifications, dispatch] = useReducer(notificationReducer, []);
+
+        const timers = useRef({});
+
+        function addNotification(type, message) {
+            const id = Date.now() + Math.random();
+            dispatch({ type: 'ADD', id, notifType: type, message });
+
+            timers.current[id] = setTimeout(() => removeNotification(id), 5000);
+        }
+
+        function removeNotification(id) {
+            clearTimeout(timers.current[id]);
+            delete timers.current[id];
+            dispatch({ type: 'REMOVE', id });
+        }
+
+        function clearAll() {
+            Object.values(timers.current).forEach(clearTimeout);
+            timers.current = {};
+            dispatch({ type: 'CLEAR_ALL' });
+        }
+
+        return (
+            <NotificationContext.Provider value={{ notifications, addNotification, removeNotification, clearAll }}>
+                {children}
+            </NotificationContext.Provider>
+        );
+    }
+
+
+    function useNotifications() {
+        const ctx = useContext(NotificationContext);
+        if (!ctx) throw new Error('useNotifications трябва да е вътре в NotificationProvider!');
+        return ctx;
+    }
+
+    function NotificationCount() {
+        const { notifications } = useNotifications();
+
+        const total   = notifications.length;
+        const success = notifications.filter(n => n.type === 'success').length;
+        const error   = notifications.filter(n => n.type === 'error').length;
+        const warning = notifications.filter(n => n.type === 'warning').length;
+
+        return (
+            <div className="count-bar">
+                <div className="stat-item">
+                    <div className="stat-num">{total}</div>
+                    <div className="stat-label">Общо</div>
+                </div>
+                <div className="stat-divider" />
+                <div className="stat-item">
+                    <div className="stat-num" style={{ color: 'var(--success-icon)' }}>{success}</div>
+                    <div className="stat-label">Успех</div>
+                </div>
+                <div className="stat-divider" />
+                <div className="stat-item">
+                    <div className="stat-num" style={{ color: 'var(--error-icon)' }}>{error}</div>
+                    <div className="stat-label">Грешки</div>
+                </div>
+                <div className="stat-divider" />
+                <div className="stat-item">
+                    <div className="stat-num" style={{ color: 'var(--warning-icon)' }}>{warning}</div>
+                    <div className="stat-label">Внимание</div>
+                </div>
+            </div>
+        );
+    }
+
+    function AddNotificationPanel() {
+        const { addNotification } = useNotifications();
+        const [msg, setMsg]   = useState('');
+        const [type, setType] = useState('success');
+
+        function handleCustom() {
+            if (!msg.trim()) return;
+            addNotification(type, msg.trim());
+            setMsg('');
+        }
+
+        return (
+            <div className="panel">
+                <div className="panel-title">AddNotificationPanel — addNotification(type, message)</div>
+                <div className="btn-row">
+                    <button className="btn btn-success" onClick={() => addNotification('success', 'Операцията е успешна!')}>✓ Успех</button>
+                    <button className="btn btn-error"   onClick={() => addNotification('error',   'Нещо се обърка!')}>✕ Грешка</button>
+                    <button className="btn btn-warning" onClick={() => addNotification('warning', 'Внимавайте!')}>⚠ Внимание</button>
+                </div>
+                <div className="custom-row">
+                    <select className="type-select" value={type} onChange={e => setType(e.target.value)}>
+                        <option value="success">success</option>
+                        <option value="error">error</option>
+                        <option value="warning">warning</option>
+                    </select>
+                    <input
+                        className="custom-input"
+                        type="text"
+                        placeholder="Собствено съобщение…"
+                        value={msg}
+                        onChange={e => setMsg(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleCustom()}
+                    />
+                    <button className="btn-add-custom" onClick={handleCustom}>+ Добави</button>
+                </div>
+            </div>
+        );
+    }
+
+    const ICONS      = { success: '✓', error: '✕', warning: '⚠' };
+    const TYPE_LABEL = { success: 'Успех', error: 'Грешка', warning: 'Внимание' };
+
+    function NotificationItem({ notif }) {
+        const { removeNotification } = useNotifications();
+
+        return (
+            <div className={`notif-item notif-${notif.type}`}>
+                <span className="notif-icon">{ICONS[notif.type]}</span>
+                <div className="notif-body">
+                    <div className="notif-message">{notif.message}</div>
+                    <div className="notif-meta">
+                        {TYPE_LABEL[notif.type]} · {notif.time} · изчезва след 5 с
+                    </div>
+                </div>
+                <button className="notif-close" onClick={() => removeNotification(notif.id)}>✕</button>
+                <div className="notif-progress" />
+            </div>
+        );
+    }
+
+    function NotificationList() {
+        const { notifications } = useNotifications();
+
+        return (
+            <div className="panel">
+                <div className="panel-title">NotificationList — notifications[]</div>
+                <div className="notif-list">
+                    {notifications.length === 0
+                        ? (
+                            <div className="notif-empty">
+                                <div className="notif-empty-icon">🌸</div>
+                                <div>Няма активни известия</div>
+                            </div>
+                        )
+                        : notifications.map(n => <NotificationItem key={n.id} notif={n} />)
+                    }
+                </div>
+            </div>
+        );
+    }
+
+    function ClearAllButton() {
+        const { notifications, clearAll } = useNotifications();
+
+        return (
+            <button className="btn-clear" onClick={clearAll} disabled={notifications.length === 0}>
+                ⊘ Изчисти всички
+            </button>
+        );
+    }
+
+    function App() {
+        return (
+            <NotificationProvider>
+                <div className="app-header">
+                    <h1 className="app-title">Известия<span>.</span></h1>
+                    <span className="badge">Context + useReducer · Задача 3</span>
+                </div>
+
+                <NotificationCount />
+                <AddNotificationPanel />
+                <NotificationList />
+                <ClearAllButton />
+
+                <p className="hint">
+                    <strong>notificationReducer</strong> — управлява ADD / REMOVE / CLEAR_ALL.<br/>
+                    Известията изчезват автоматично след <strong>5 секунди</strong>.
+                </p>
+            </NotificationProvider>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

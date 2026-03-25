@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+        [data-theme="light"] {
+            --bg:           #f7f3ee;
+            --surface:      #ffffff;
+            --surface2:     #f0ebe4;
+            --border:       #e5ddd4;
+            --text:         #3d3530;
+            --text-muted:   #a89888;
+            --header-bg:    #d4849a;
+            --header-text:  #ffffff;
+            --sidebar-bg:   #f0ebe4;
+            --sidebar-text: #c4b0a0;
+            --sidebar-act:  #3d3530;
+            --accent:       #d4849a;
+            --accent-dim:   #faeef1;
+            --green:        #8db89a;
+            --shadow:       0 2px 12px rgba(212,132,154,0.1);
+            --input-bg:     #f7f3ee;
+        }
+        [data-theme="dark"] {
+            --bg:           #2a2025;
+            --surface:      #332830;
+            --surface2:     #3d3038;
+            --border:       #4a3840;
+            --text:         #f0e8e4;
+            --text-muted:   #9a8080;
+            --header-bg:    #3d2830;
+            --header-text:  #f0e8e4;
+            --sidebar-bg:   #241c20;
+            --sidebar-text: #6a5050;
+            --sidebar-act:  #f0e8e4;
+            --accent:       #d4849a;
+            --accent-dim:   #4a2838;
+            --green:        #8db89a;
+            --shadow:       0 2px 16px rgba(0,0,0,0.3);
+            --input-bg:     #3d3038;
+        }
+
+        #root { min-height: 100vh; }
+
+        .shell {
+            display: flex; flex-direction: column; min-height: 100vh;
+            background: var(--bg); color: var(--text);
+            transition: background 0.25s, color 0.25s;
+        }
+
+        .site-header {
+            background: var(--header-bg); color: var(--header-text);
+            height: 72px; display: flex; align-items: center;
+            padding: 0 1.75rem; gap: 1.25rem;
+            box-shadow: var(--shadow); flex-shrink: 0;
+        }
+        .header-brand {
+            display: flex; align-items: baseline; gap: 0.85rem; flex: 1;
+        }
+        .header-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2rem; font-weight: 400; line-height: 1;
+            letter-spacing: -0.5px; color: var(--header-text);
+        }
+        .header-title span { color: rgba(255,255,255,0.45); }
+        .header-task-badge {
+            font-size: 0.68rem; font-weight: 500;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: rgba(255,255,255,0.8);
+            padding: 4px 12px; border-radius: 20px;
+            letter-spacing: 0.03em;
+        }
+        .header-controls { display: flex; align-items: center; gap: 0.75rem; }
+        .lang-toggle {
+            display: flex; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px; overflow: hidden;
+            font-size: 0.72rem; font-weight: 700;
+        }
+        .lang-btn {
+            background: none; border: none; color: rgba(255,255,255,0.55);
+            padding: 0.3rem 0.7rem; cursor: pointer;
+            font-family: inherit; font-size: inherit; font-weight: inherit;
+            transition: background 0.15s, color 0.15s;
+        }
+        .lang-btn.active { background: rgba(255,255,255,0.2); color: #fff; }
+        .theme-toggle {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; border-radius: 20px; padding: 0.3rem 0.7rem;
+            cursor: pointer; font-size: 0.85rem; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.25); }
+        .user-pill {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px; padding: 0.25rem 0.75rem 0.25rem 0.35rem;
+            font-size: 0.78rem;
+        }
+        .user-avatar {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: rgba(255,255,255,0.3); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 800; flex-shrink: 0;
+        }
+        .user-name { font-weight: 600; }
+        .user-role { font-size: 0.65rem; opacity: 0.65; }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; border-radius: 20px; padding: 0.3rem 0.75rem;
+            cursor: pointer; font-size: 0.75rem; font-weight: 600;
+            font-family: inherit; transition: background 0.15s;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.28); }
+
+        .body-layout { display: flex; flex: 1; overflow: hidden; }
+
+        .sidebar {
+            width: 200px; background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            padding: 1.25rem 0; flex-shrink: 0;
+            transition: background 0.25s;
+        }
+        .sidebar-section {
+            font-size: 0.6rem; font-weight: 700;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--sidebar-text); padding: 0 1rem 0.6rem;
+        }
+        .nav-link {
+            display: flex; align-items: center; gap: 0.65rem;
+            padding: 0.65rem 1rem; font-size: 0.82rem; font-weight: 600;
+            color: var(--sidebar-text); cursor: pointer;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+            user-select: none; border: none; background: none;
+            font-family: inherit; width: 100%; text-align: left;
+            border-left: 2px solid transparent;
+        }
+        .nav-link:hover { color: var(--sidebar-act); background: rgba(212,132,154,0.07); }
+        .nav-link.active {
+            color: var(--accent); border-left-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .nav-icon { width: 18px; text-align: center; font-size: 0.9rem; }
+
+        .main-content {
+            flex: 1; padding: 2rem; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        .login-card {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 16px; padding: 2.5rem;
+            max-width: 380px; margin: 2rem auto;
+            box-shadow: var(--shadow);
+        }
+        .login-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem; font-weight: 400;
+            margin-bottom: 0.35rem; color: var(--text);
+        }
+        .login-sub { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .form-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+        .form-label {
+            font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+        }
+        .form-input {
+            background: var(--input-bg); border: 1.5px solid var(--border);
+            color: var(--text); font-family: inherit; font-size: 0.88rem;
+            padding: 0.65rem 0.9rem; border-radius: 10px;
+            outline: none; transition: border-color 0.15s;
+        }
+        .form-input:focus { border-color: var(--accent); }
+        .btn-login {
+            width: 100%; background: var(--accent); border: none;
+            color: #fff; font-family: inherit; font-size: 0.88rem; font-weight: 700;
+            padding: 0.75rem; border-radius: 10px; cursor: pointer; margin-top: 0.5rem;
+            transition: opacity 0.15s, transform 0.1s;
+            box-shadow: 0 2px 8px rgba(212,132,154,0.3);
+        }
+        .btn-login:hover  { opacity: 0.88; }
+        .btn-login:active { transform: scale(0.98); }
+
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--accent) 0%, #c9b89a 100%);
+            border-radius: 14px; padding: 1.75rem 2rem; color: #fff;
+            box-shadow: 0 4px 16px rgba(212,132,154,0.25);
+        }
+        .welcome-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.5rem; font-weight: 400; margin-bottom: 0.3rem;
+        }
+        .welcome-sub { font-size: 0.85rem; opacity: 0.88; }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+        .stat-card {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow);
+            transition: background 0.25s, border-color 0.25s;
+        }
+        .stat-icon  { font-size: 1.4rem; margin-bottom: 0.5rem; color: var(--accent); }
+        .stat-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.8rem; font-weight: 400; color: var(--accent);
+        }
+        .stat-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+        .context-panel {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 12px; padding: 1.25rem;
+            font-size: 0.78rem; font-family: 'Courier New', monospace;
+            color: var(--text-muted); line-height: 1.9;
+        }
+        .context-panel strong { color: var(--accent); }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const { createContext, useContext, useState } = React;
+
+
+    const translations = {
+        bg: {
+            dashboard: 'Табло', quizzes: 'Тестове', settings: 'Настройки',
+            welcome: 'Добре дошли', login: 'Вход', logout: 'Изход',
+            username: 'Потребителско име', menu: 'МЕНЮ',
+            stats_q: 'Решени теста', stats_s: 'Точки', stats_d: 'Дни активност',
+            context_state: 'Текущ Context state', protected: 'Защитено съдържание',
+            must_login: 'Трябва да влезете в системата', enter_name: 'Въведете вашето име',
+        },
+        en: {
+            dashboard: 'Dashboard', quizzes: 'Quizzes', settings: 'Settings',
+            welcome: 'Welcome', login: 'Login', logout: 'Logout',
+            username: 'Username', menu: 'MENU',
+            stats_q: 'Quizzes done', stats_s: 'Score', stats_d: 'Days active',
+            context_state: 'Current Context state', protected: 'Protected content',
+            must_login: 'You must log in to continue', enter_name: 'Enter your name',
+        },
+    };
+
+    const ThemeContext = createContext(null);
+
+    function ThemeProvider({ children }) {
+        const [theme, setTheme] = useState('light');
+        const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+        return (
+            <ThemeContext.Provider value={{ theme, toggleTheme }}>
+                {children}
+            </ThemeContext.Provider>
+        );
+    }
+
+    function useTheme() {
+        const ctx = useContext(ThemeContext);
+        if (!ctx) throw new Error('useTheme трябва да е вътре в ThemeProvider!');
+        return ctx;
+    }
+
+
+    const AuthContext = createContext(null);
+
+    function AuthProvider({ children }) {
+        const [user, setUser] = useState(null);
+        const login  = (name) => setUser({ name, role: 'student' });
+        const logout = () => setUser(null);
+        return (
+            <AuthContext.Provider value={{ user, login, logout }}>
+                {children}
+            </AuthContext.Provider>
+        );
+    }
+
+    function useAuth() {
+        const ctx = useContext(AuthContext);
+        if (!ctx) throw new Error('useAuth трябва да е вътре в AuthProvider!');
+        return ctx;
+    }
+
+
+    const LangContext = createContext(null);
+
+    function LangProvider({ children }) {
+        const [lang, setLang] = useState('bg');
+        const t = (key) => translations[lang][key] || key;
+        const toggleLang = () => setLang(l => l === 'bg' ? 'en' : 'bg');
+        return (
+            <LangContext.Provider value={{ lang, t, toggleLang }}>
+                {children}
+            </LangContext.Provider>
+        );
+    }
+
+    function useLang() {
+        const ctx = useContext(LangContext);
+        if (!ctx) throw new Error('useLang трябва да е вътре в LangProvider!');
+        return ctx;
+    }
+
+    function Header() {
+        const { theme, toggleTheme }  = useTheme();
+        const { user, logout }        = useAuth();
+        const { lang, t, toggleLang } = useLang();
+
+        return (
+            <header className="site-header">
+=                <div className="header-brand">
+                    <span className="header-title">Multicontext Dashboard<span>.</span></span>
+                    <span className="header-task-badge">Context API · Задача 5</span>
+                </div>
+
+                <div className="header-controls">
+=                    <div className="lang-toggle">
+                        <button
+                            className={`lang-btn ${lang === 'bg' ? 'active' : ''}`}
+                            onClick={() => lang !== 'bg' && toggleLang()}
+                        >BG</button>
+                        <button
+                            className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                            onClick={() => lang !== 'en' && toggleLang()}
+                        >EN</button>
+                    </div>
+
+                    <button className="theme-toggle" onClick={toggleTheme}>
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </button>
+
+                    {user && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="user-pill">
+                                <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <div className="user-name">{user.name}</div>
+                                    <div className="user-role">{user.role}</div>
+                                </div>
+                            </div>
+                            <button className="btn-logout" onClick={logout}>{t('logout')}</button>
+                        </div>
+                    )}
+                </div>
+            </header>
+        );
+    }
+
+    function Sidebar() {
+        const { t } = useLang();
+        const [active, setActive] = useState('dashboard');
+
+        const NAV_ITEMS = [
+            { key: 'dashboard', icon: '⊞' },
+            { key: 'quizzes',   icon: '◫' },
+            { key: 'settings',  icon: '⚙' },
+        ];
+
+        return (
+            <nav className="sidebar">
+                <div className="sidebar-section">{t('menu')}</div>
+                {NAV_ITEMS.map(item => (
+                    <button
+                        key={item.key}
+                        className={`nav-link ${active === item.key ? 'active' : ''}`}
+                        onClick={() => setActive(item.key)}
+                    >
+                        <span className="nav-icon">{item.icon}</span>
+                        <span>{t(item.key)}</span>
+                    </button>
+                ))}
+            </nav>
+        );
+    }
+
+
+    function MainContent() {
+        const { user, login } = useAuth();
+        const { t }           = useLang();
+        const { theme }       = useTheme();
+        const { lang }        = useLang();
+        const [name, setName] = useState('');
+
+        function handleLogin() {
+            if (name.trim()) login(name.trim());
+        }
+
+        if (!user) {
+            return (
+                <main className="main-content">
+                    <div className="login-card">
+                        <div className="login-title">⊙ {t('login')}</div>
+                        <div className="login-sub">{t('must_login')}</div>
+                        <div className="form-field">
+                            <label className="form-label">{t('username')}</label>
+                            <input
+                                className="form-input"
+                                type="text"
+                                placeholder={t('enter_name')}
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                            />
+                        </div>
+                        <button className="btn-login" onClick={handleLogin}>{t('login')}</button>
+                    </div>
+                </main>
+            );
+        }
+
+        return (
+            <main className="main-content">
+                <div className="welcome-banner">
+                    <div className="welcome-title">{t('welcome')}, {user.name}! 👋</div>
+                    <div className="welcome-sub">{t('protected')} · {user.role}</div>
+                </div>
+
+                <div className="stats-grid">
+                    {[
+                        { icon: '◫', value: '12',  labelKey: 'stats_q' },
+                        { icon: '◈', value: '840', labelKey: 'stats_s' },
+                        { icon: '⊛', value: '7',   labelKey: 'stats_d' },
+                    ].map(s => (
+                        <div key={s.labelKey} className="stat-card">
+                            <div className="stat-icon">{s.icon}</div>
+                            <div className="stat-value">{s.value}</div>
+                            <div className="stat-label">{t(s.labelKey)}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="context-panel">
+                    <strong>{'// ' + t('context_state')}</strong><br />
+                    ThemeContext → theme: "{theme}"<br />
+                    AuthContext  → user: {'{ name: "' + user.name + '", role: "' + user.role + '" }'}<br />
+                    LangContext  → lang: "{lang}"
+                </div>
+            </main>
+        );
+    }
+
+
+    function App() {
+        const { theme } = useTheme();
+        return (
+            <div className="shell" data-theme={theme}>
+                <Header />
+                <div className="body-layout">
+                    <Sidebar />
+                    <MainContent />
+                </div>
+            </div>
+        );
+    }
+
+    function AppWrapper() {
+        return (
+            <ThemeProvider>
+                <AuthProvider>
+                    <LangProvider>
+                        <App />
+                    </LangProvider>
+                </AuthProvider>
+            </ThemeProvider>
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AppWrapper />);
+</script>
+</body>
+</html>

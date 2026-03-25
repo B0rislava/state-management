@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopping cart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:         #f7f3ee;
+            --surface:    #ffffff;
+            --surface2:   #f0ebe4;
+            --border:     #e5ddd4;
+            --text:       #3d3530;
+            --text-muted: #a89888;
+            --accent:     #d4849a;
+            --accent-dim: #faeef1;
+            --green:      #8db89a;
+            --green-dim:  #e4f2e8;
+            --radius:     12px;
+            --shadow:     0 2px 12px rgba(212,132,154,0.1);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        #root { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+
+        .page-header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            border-bottom: 1px solid var(--border); padding-bottom: 1rem;
+        }
+        .page-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.4rem; font-weight: 400; line-height: 1; letter-spacing: -0.5px;
+        }
+        .page-title span { color: var(--accent); }
+
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .task-badge {
+            font-size: 0.68rem; font-weight: 500;
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--text-muted); padding: 4px 12px; border-radius: 20px;
+        }
+        .cart-badge-wrap { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); }
+        .cart-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 26px; height: 26px; padding: 0 6px;
+            border-radius: 99px; background: var(--accent);
+            color: #fff; font-size: 0.75rem; font-weight: 700;
+            transition: transform 0.15s;
+        }
+        .cart-badge.empty { background: var(--border); color: var(--text-muted); }
+        .cart-badge.pop { animation: pop 0.25s ease; }
+        @keyframes pop {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+
+        .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+        @media (max-width: 640px) { .layout { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+        }
+        .panel-header {
+            padding: 0.9rem 1.25rem; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .panel-title {
+            font-size: 0.62rem; font-weight: 700;
+            letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted);
+        }
+        .panel-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .product-card {
+            display: flex; align-items: center; gap: 1rem;
+            background: var(--surface2); border: 1.5px solid var(--border);
+            border-radius: 10px; padding: 0.85rem 1rem;
+            transition: border-color 0.15s;
+        }
+        .product-card:hover { border-color: var(--accent); }
+        .product-emoji {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: var(--accent-dim); color: var(--accent);
+            font-size: 1.4rem; display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0;
+        }
+        .product-info { flex: 1; }
+        .product-name  { font-size: 0.88rem; font-weight: 600; }
+        .product-price { font-size: 0.78rem; color: var(--green); font-weight: 700; margin-top: 2px; }
+
+        .btn-add {
+            background: var(--accent-dim); border: 1.5px solid var(--accent);
+            color: var(--accent); border-radius: 20px;
+            padding: 0.4rem 0.9rem; font-size: 0.75rem; font-weight: 700;
+            cursor: pointer; transition: background 0.15s, transform 0.1s;
+            white-space: nowrap; font-family: inherit;
+        }
+        .btn-add:hover { background: var(--accent); color: #fff; }
+        .btn-add:active { transform: scale(0.95); }
+        .btn-add.in-cart { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+        .btn-add.in-cart:hover { background: var(--green); color: #fff; }
+
+        .cart-item {
+            display: flex; align-items: center; gap: 0.85rem;
+            background: var(--surface2); border: 1.5px solid var(--border);
+            border-radius: 10px; padding: 0.85rem 1rem;
+            animation: slideIn 0.2s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .item-emoji {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: var(--accent-dim); color: var(--accent);
+            font-size: 1.1rem; display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0;
+        }
+        .item-info { flex: 1; min-width: 0; }
+        .item-name  { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-price { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+        .qty-control {
+            display: flex; align-items: center;
+            border: 1.5px solid var(--border); border-radius: 20px;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .qty-btn {
+            background: var(--surface); border: none; color: var(--text);
+            width: 28px; height: 28px; cursor: pointer; font-size: 1rem;
+            line-height: 1; transition: background 0.12s; font-family: inherit;
+        }
+        .qty-btn:hover { background: var(--accent-dim); color: var(--accent); }
+        .qty-display {
+            width: 30px; text-align: center; font-size: 0.82rem; font-weight: 700;
+            color: var(--text); border: none; background: var(--surface);
+            padding: 0; font-family: inherit;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .qty-display::-webkit-outer-spin-button,
+        .qty-display::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; }
+
+        .btn-remove {
+            background: none; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 0.9rem; padding: 4px 6px;
+            border-radius: 6px; transition: color 0.15s, background 0.15s;
+            line-height: 1; flex-shrink: 0;
+        }
+        .btn-remove:hover { color: var(--accent); background: var(--accent-dim); }
+
+        .cart-empty { text-align: center; padding: 2rem 1rem; font-size: 0.82rem; color: var(--text-muted); }
+        .cart-empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+        .summary-panel {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .summary-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); }
+        .summary-row.total {
+            font-size: 1rem; font-weight: 700; color: var(--text);
+            padding-top: 0.6rem; border-top: 1px solid var(--border); margin-top: 0.2rem;
+        }
+        .summary-row.total span:last-child { color: var(--green); }
+
+        .btn-checkout {
+            margin: 0 1.25rem 0.75rem; width: calc(100% - 2.5rem);
+            background: var(--green); border: none; color: #fff;
+            border-radius: 20px; padding: 0.75rem;
+            font-size: 0.88rem; font-weight: 700; cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s; font-family: inherit;
+            box-shadow: 0 2px 8px rgba(141,184,154,0.3);
+        }
+        .btn-checkout:hover:not(:disabled) { opacity: 0.85; }
+        .btn-checkout:active { transform: scale(0.98); }
+        .btn-checkout:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-clear-cart {
+            margin: 0 1.25rem 1.25rem; width: calc(100% - 2.5rem);
+            background: transparent; border: 1.5px solid var(--border);
+            color: var(--text-muted); border-radius: 20px; padding: 0.6rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s; font-family: inherit;
+        }
+        .btn-clear-cart:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .btn-clear-cart:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useReducer, useState, useEffect, useRef } = React;
+
+    const PRODUCTS = [
+        { id: 1, name: 'React тениска',   price: 29.99, emoji: '👕' },
+        { id: 2, name: 'JavaScript чаша', price: 14.99, emoji: '☕' },
+        { id: 3, name: 'CSS стикери',     price: 4.99,  emoji: '🎨' },
+        { id: 4, name: 'Node.js шапка',   price: 24.99, emoji: '🧢' },
+    ];
+
+    function cartReducer(state, action) {
+        switch (action.type) {
+            case 'ADD_ITEM': {
+                const existing = state.items.find(i => i.product.id === action.product.id);
+                if (existing) {
+                    return { items: state.items.map(i =>
+                            i.product.id === action.product.id ? { ...i, quantity: i.quantity + 1 } : i
+                        )};
+                }
+                return { items: [...state.items, { product: action.product, quantity: 1 }] };
+            }
+            case 'REMOVE_ITEM':
+                return { items: state.items.filter(i => i.product.id !== action.id) };
+            case 'UPDATE_QUANTITY':
+                return { items: state.items
+                        .map(i => i.product.id === action.id ? { ...i, quantity: Math.max(0, action.quantity) } : i)
+                        .filter(i => i.quantity > 0)
+                };
+            case 'CLEAR_CART':
+                return { items: [] };
+            default:
+                return state;
+        }
+    }
+
+    function CartBadge({ totalItems }) {
+        const prevRef  = useRef(totalItems);
+        const [pop, setPop] = useState(false);
+
+        useEffect(() => {
+            if (totalItems !== prevRef.current) {
+                setPop(false);
+                requestAnimationFrame(() => setPop(true));
+                prevRef.current = totalItems;
+            }
+        }, [totalItems]);
+
+        return (
+            <div className="cart-badge-wrap">
+                🛒
+                <span className={`cart-badge${totalItems === 0 ? ' empty' : ''}${pop ? ' pop' : ''}`}
+                      onAnimationEnd={() => setPop(false)}>
+          {totalItems}
+        </span>
+                <span>артикула</span>
+            </div>
+        );
+    }
+
+    function ProductCatalog({ items, onAdd }) {
+        return (
+            <div className="panel">
+                <div className="panel-header">
+                    <span className="panel-title">ProductCatalog</span>
+                </div>
+                <div className="panel-body">
+                    {PRODUCTS.map(product => {
+                        const inCart = items.some(i => i.product.id === product.id);
+                        return (
+                            <div className="product-card" key={product.id}>
+                                <div className="product-emoji">{product.emoji}</div>
+                                <div className="product-info">
+                                    <div className="product-name">{product.name}</div>
+                                    <div className="product-price">{product.price.toFixed(2)} €</div>
+                                </div>
+                                <button
+                                    className={`btn-add${inCart ? ' in-cart' : ''}`}
+                                    onClick={() => onAdd(product)}
+                                >
+                                    {inCart ? '✓ В количката' : '+ Добави'}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
+    function CartItem({ item, onUpdateQty, onRemove }) {
+        const { product, quantity } = item;
+
+        return (
+            <div className="cart-item">
+                <div className="item-emoji">{product.emoji}</div>
+                <div className="item-info">
+                    <div className="item-name">{product.name}</div>
+                    <div className="item-price">
+                        {quantity} × {product.price.toFixed(2)} = {(quantity * product.price).toFixed(2)} €
+                    </div>
+                </div>
+                <div className="qty-control">
+                    <button className="qty-btn" onClick={() => onUpdateQty(quantity - 1)}>−</button>
+                    <input
+                        className="qty-display"
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={e => {
+                            const n = parseInt(e.target.value, 10);
+                            if (!isNaN(n)) onUpdateQty(n);
+                        }}
+                    />
+                    <button className="qty-btn" onClick={() => onUpdateQty(quantity + 1)}>+</button>
+                </div>
+                <button className="btn-remove" onClick={onRemove}>✕</button>
+            </div>
+        );
+    }
+
+    function CartList({ items, totalItems, dispatch }) {
+        return (
+            <div className="panel">
+                <div className="panel-header">
+                    <span className="panel-title">Количка</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{totalItems} артикула</span>
+                </div>
+                <div className="panel-body">
+                    {items.length === 0
+                        ? (
+                            <div className="cart-empty">
+                                <div className="cart-empty-icon">🌸</div>
+                                Количката е празна
+                            </div>
+                        )
+                        : items.map(item => (
+                            <CartItem
+                                key={item.product.id}
+                                item={item}
+                                onUpdateQty={qty => dispatch({ type: 'UPDATE_QUANTITY', id: item.product.id, quantity: qty })}
+                                onRemove={() => dispatch({ type: 'REMOVE_ITEM', id: item.product.id })}
+                            />
+                        ))
+                    }
+                </div>
+            </div>
+        );
+    }
+
+    function CartSummary({ items, totalItems, totalPrice, dispatch }) {
+        function handleCheckout() {
+            alert('Поръчката е изпратена! 🎉');
+            dispatch({ type: 'CLEAR_CART' });
+        }
+
+        return (
+            <div className="summary-panel">
+                <div className="summary-body">
+                    <div className="summary-row"><span>Артикули</span><span>{totalItems}</span></div>
+                    <div className="summary-row"><span>Брой позиции</span><span>{items.length}</span></div>
+                    <div className="summary-row total">
+                        <span>Общо</span>
+                        <span>{totalPrice.toFixed(2)} €</span>
+                    </div>
+                </div>
+                <button className="btn-checkout" disabled={items.length === 0} onClick={handleCheckout}>
+                    Поръчай →
+                </button>
+                <button className="btn-clear-cart" disabled={items.length === 0}
+                        onClick={() => dispatch({ type: 'CLEAR_CART' })}>
+                    ⊘ Изчисти количката
+                </button>
+            </div>
+        );
+    }
+
+    function ShoppingApp() {
+        const [cart, dispatch] = useReducer(cartReducer, { items: [] });
+
+        const totalItems = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+        const totalPrice = cart.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+
+        return (
+            <>
+                <div className="page-header">
+                    <h1 className="page-title">Количка<span>.</span></h1>
+                    <div className="header-right">
+                        <span className="task-badge">useReducer · Задача 4</span>
+                        <CartBadge totalItems={totalItems} />
+                    </div>
+                </div>
+
+                <div className="layout">
+                    <ProductCatalog
+                        items={cart.items}
+                        onAdd={product => dispatch({ type: 'ADD_ITEM', product })}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <CartList items={cart.items} totalItems={totalItems} dispatch={dispatch} />
+                        <CartSummary items={cart.items} totalItems={totalItems} totalPrice={totalPrice} dispatch={dispatch} />
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ShoppingApp />);
+</script>
+</body>
+</html>

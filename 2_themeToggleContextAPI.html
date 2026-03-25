@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Theme Toggle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body[data-theme="light"] {
+            --bg:         #f0f4f8;
+            --surface:    #ffffff;
+            --surface2:   #e8eef5;
+            --border:     #d0dae6;
+            --text:       #1a2433;
+            --text-muted: #5a6a7e;
+            --header-bg:  #017ae0;
+            --header-txt: #ffffff;
+            --accent:     #017ae0;
+            --accent2:    #00b894;
+            --footer-bg:  #1a2433;
+            --footer-txt: #a0aec0;
+            --tag-bg:     #e3f0ff;
+            --tag-txt:    #017ae0;
+            --btn-bg:     rgba(255,255,255,0.2);
+            --btn-hover:  rgba(255,255,255,0.35);
+            --shadow:     0 2px 12px rgba(1,122,224,0.10);
+        }
+
+        body[data-theme="dark"] {
+            --bg:         #0f1117;
+            --surface:    #1a1d2e;
+            --surface2:   #242840;
+            --border:     #2e3250;
+            --text:       #e2e8f0;
+            --text-muted: #7c8db5;
+            --header-bg:  #13162a;
+            --header-txt: #e2e8f0;
+            --accent:     #7eb3ff;
+            --accent2:    #4ecca3;
+            --footer-bg:  #0a0c14;
+            --footer-txt: #4a5578;
+            --tag-bg:     #1e2440;
+            --tag-txt:    #7eb3ff;
+            --btn-bg:     rgba(255,255,255,0.08);
+            --btn-hover:  rgba(255,255,255,0.14);
+            --shadow:     0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #root {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .site-header {
+            background: var(--header-bg);
+            color: var(--header-txt);
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.3s;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+        }
+        .header-brand {
+            display: flex; align-items: center;
+            gap: 0.75rem; font-weight: 700; font-size: 1.1rem;
+        }
+        .header-logo {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-label  { font-size: 0.75rem; opacity: 0.75; letter-spacing: 0.05em; }
+        .toggle-wrap  { display: flex; align-items: center; gap: 0.5rem; }
+        .toggle-track {
+            width: 48px; height: 26px;
+            background: var(--btn-bg);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 13px;
+            cursor: pointer; position: relative;
+            transition: background 0.25s;
+        }
+        .toggle-track:hover { background: var(--btn-hover); }
+        .toggle-thumb {
+            position: absolute; top: 3px; left: 3px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #fff;
+            transition: transform 0.25s cubic-bezier(.4,0,.2,1), background 0.25s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        .toggle-thumb.is-dark {
+            transform: translateX(22px);
+            background: #7eb3ff;
+        }
+
+        .site-main {
+            flex: 1; padding: 2.5rem 1.5rem;
+            max-width: 960px; margin: 0 auto; width: 100%;
+        }
+        .section-title {
+            font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--text-muted); margin-bottom: 1.25rem;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .quiz-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.5rem;
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s, transform 0.15s, box-shadow 0.15s;
+            box-shadow: var(--shadow);
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+        .quiz-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+        .card-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: var(--tag-bg); color: var(--tag-txt);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; font-weight: 800; transition: background 0.3s;
+        }
+        .card-tag {
+            font-size: 0.65rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            background: var(--tag-bg); color: var(--tag-txt);
+            padding: 0.3em 0.7em; border-radius: 99px;
+        }
+        .card-title { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+        .card-meta  { font-size: 0.8rem; color: var(--text-muted); }
+        .progress-wrap { display: flex; flex-direction: column; gap: 0.4rem; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); }
+        .progress-bar { height: 5px; border-radius: 99px; background: var(--surface2); overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+        .card-btn {
+            margin-top: auto;
+            background: var(--accent); color: #fff; border: none;
+            border-radius: 8px; padding: 0.6rem 1rem;
+            font-size: 0.8rem; font-weight: 700; cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s; font-family: inherit;
+        }
+        .card-btn:hover  { opacity: 0.88; }
+        .card-btn:active { transform: scale(0.97); }
+
+
+        .site-footer {
+            background: var(--footer-bg); color: var(--footer-txt);
+            padding: 1.5rem 2rem; transition: background 0.3s, color 0.3s;
+        }
+        .footer-inner {
+            max-width: 960px; margin: 0 auto;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+        }
+        .footer-brand { font-size: 0.85rem; font-weight: 600; }
+        .footer-links { display: flex; gap: 1.5rem; }
+        .footer-links a { font-size: 0.78rem; color: var(--footer-txt); text-decoration: none; transition: opacity 0.15s; }
+        .footer-links a:hover { opacity: 0.7; }
+        .footer-badge {
+            font-size: 0.7rem; padding: 0.25em 0.75em;
+            border: 1px solid currentColor; border-radius: 99px;
+            opacity: 0.4; letter-spacing: 0.08em; text-transform: uppercase;
+        }
+
+        .app-header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            margin-bottom: 20px; transition: color 0.3s;
+        }
+        .app-title {
+            font-family: 'DM Sans', serif; font-size: 2rem; font-weight: 700; line-height: 1; letter-spacing: -1px;
+        }
+        .app-title span { color: var(--accent); }
+        .badge {
+            font-size: 0.68rem; font-weight: 500; background: var(--surface);
+            border: 1px solid var(--border); color: var(--text-muted);
+            padding: 4px 12px; border-radius: 20px;
+        }
+
+    </style>
+</head>
+<body data-theme="light">
+<div id="root"></div>
+
+<script type="text/babel">
+    const { createContext, useContext, useState, useEffect } = React;
+
+    const ThemeContext = createContext(null);
+
+    function ThemeProvider({ children }) {
+        const [theme, setTheme] = useState('light');
+
+        const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+
+        useEffect(() => {
+            document.body.setAttribute('data-theme', theme);
+        }, [theme]);
+
+        return (
+            <ThemeContext.Provider value={{ theme, toggleTheme }}>
+                {children}
+            </ThemeContext.Provider>
+        );
+    }
+
+    function useTheme() {
+        const ctx = useContext(ThemeContext);
+        if (!ctx) throw new Error('useTheme трябва да е вътре в ThemeProvider!');
+        return ctx;
+    }
+
+    function Header() {
+        const { theme, toggleTheme } = useTheme();
+
+        return (
+            <header className="site-header">
+                <div className="header-brand">
+                    <span>Quizzes</span>
+                </div>
+                <div className="header-right">
+          <span className="theme-label">
+            {theme === 'dark' ? 'Тъмна тема' : 'Светла тема'}
+          </span>
+                    <div className="toggle-wrap">
+                        <span>☀️</span>
+                        <div
+                            className="toggle-track"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Смяна на тема"
+                            onClick={toggleTheme}
+                            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggleTheme()}
+                        >
+                            <div className={`toggle-thumb ${theme === 'dark' ? 'is-dark' : ''}`} />
+                        </div>
+                        <span>🌙</span>
+                    </div>
+                </div>
+            </header>
+        );
+    }
+
+    const CARDS = [
+        { title: 'HTML',       icon: 'H',  questions: 32, done: 18, tag: 'Markup'  },
+        { title: 'CSS',        icon: 'C',  questions: 32, done: 7,  tag: 'Styling' },
+        { title: 'JavaScript', icon: 'JS', questions: 48, done: 30, tag: 'Logic'   },
+        { title: 'React',      icon: 'Re', questions: 40, done: 0,  tag: 'Library' },
+    ];
+
+    function QuizCard({ title, icon, questions, done, tag }) {
+        const { theme } = useTheme();
+        const pct = Math.round((done / questions) * 100);
+
+        return (
+            <div 
+                className="quiz-card"
+                style={{
+                    backgroundColor: theme === 'dark' ? '#1a1d2e' : '#ffffff',
+                    borderColor: theme === 'dark' ? '#2e3250' : '#d0dae6'
+                }}
+            >
+
+                <div className="card-top">
+                    <div className="card-icon">{icon}</div>
+                    <span className="card-tag">{tag}</span>
+                </div>
+                <div className="card-title">{title}</div>
+                <div className="card-meta">{questions} въпроса</div>
+                <div className="progress-wrap">
+                    <div className="progress-label">
+                        <span>Прогрес</span>
+                        <span>{done} / {questions}</span>
+                    </div>
+                    <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: pct + '%' }} />
+                    </div>
+                </div>
+                <button className="card-btn">Започни тест &rarr;</button>
+            </div>
+        );
+    }
+
+    function Footer() {
+        const { theme } = useTheme();
+
+        return (
+            <footer className="site-footer">
+                <div className="footer-inner">
+                    <span className="footer-brand">&copy; 2025 QuizApp</span>
+                    <div className="footer-links">
+                        <a href="#">За нас</a>
+                        <a href="#">Контакти</a>
+                        <a href="#">Политика</a>
+                    </div>
+                    <span className="footer-badge">{theme} mode</span>
+                </div>
+            </footer>
+        );
+    }
+
+    function App() {
+        return (
+            <ThemeProvider>
+                <Header />
+                <main className="site-main">
+                    <div className="app-header">
+                        <h1 className="app-title">Theme Toggle<span>.</span></h1>
+                        <span className="badge">Context API · Задача 2</span>
+                    </div>
+                    <p className="section-title">Налични тестове</p>
+
+                    <div className="cards-grid">
+                        {CARDS.map(card => (
+                            <QuizCard key={card.title} {...card} />
+                        ))}
+                    </div>
+                </main>
+                <Footer />
+            </ThemeProvider>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
